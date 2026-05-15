@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Visual Production &middot; IB 156 Final Art Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Inter:wght@300..500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     VISUAL PRODUCTION  ::  v1.1
+     Single scroll site for IB 156 final art project.
+     Dark, cinematic. Right edge nav dots. Real animal photos.
+
+     PHOTOS: each section loads an image from the images/ folder.
+     If a file is missing, a styled fallback panel shows instead,
+     so the page always looks intentional. To swap in your own
+     photo, just replace the matching file inside images/.
+     ============================================================ */
+
+  :root{
+    --bg:#0b0b0c;
+    --bg-soft:#141416;
+    --text:#ededed;
+    --muted:#8a8a8e;
+    --line:rgba(255,255,255,0.10);
+    --maxw:1180px;
+    --active-accent:#ededed;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    font-weight:300;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* faint depth vignette */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(120% 80% at 50% 0%, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  h1,h2,h3{
+    font-family:'Fraunces','Georgia',serif;
+    font-weight:400;
+    letter-spacing:-0.01em;
+  }
+
+  a{color:inherit;}
+
+  /* scroll progress bar */
+  .progress{
+    position:fixed;top:0;left:0;height:2px;width:0;
+    background:var(--active-accent);
+    z-index:100;
+    transition:width .12s linear, background .5s ease;
+    box-shadow:0 0 10px var(--active-accent);
+  }
+
+  /* nav dots */
+  .dots{
+    position:fixed;right:28px;top:50%;transform:translateY(-50%);
+    z-index:90;
+    display:flex;flex-direction:column;gap:15px;align-items:flex-end;
+  }
+  .dot{
+    position:relative;display:flex;align-items:center;gap:11px;
+    text-decoration:none;cursor:pointer;
+    --dot-accent:#ededed;
+  }
+  .dot-label{
+    font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap;pointer-events:none;
+    opacity:0;transform:translateX(6px);
+    transition:opacity .3s ease, transform .3s ease, color .3s ease;
+  }
+  .dot-mark{
+    width:9px;height:9px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.40);
+    background:transparent;
+    transition:transform .35s cubic-bezier(.2,.7,.2,1),
+               background .35s ease, border-color .35s ease, box-shadow .35s ease;
+  }
+  .dot:hover .dot-label{opacity:1;transform:translateX(0);}
+  .dot:hover .dot-mark{border-color:var(--dot-accent);}
+  .dot.active .dot-mark{
+    background:var(--dot-accent);
+    border-color:var(--dot-accent);
+    transform:scale(1.55);
+    box-shadow:0 0 14px var(--dot-accent);
+  }
+  .dot.active .dot-label{opacity:1;transform:translateX(0);color:var(--text);}
+
+  /* shared section bits */
+  section{position:relative;z-index:2;}
+
+  .eyebrow{
+    font-size:11px;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--accent,#ededed);font-weight:500;
+  }
+
+  .reveal{
+    opacity:0;transform:translateY(30px);
+    transition:opacity 1s cubic-bezier(.2,.7,.2,1),
+               transform 1s cubic-bezier(.2,.7,.2,1);
+  }
+  .reveal.visible{opacity:1;transform:none;}
+
+  /* hero */
+  .hero{
+    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:48px 24px;
+    overflow:hidden;
+  }
+  .hero-shader{
+    position:absolute;inset:0;z-index:0;
+    width:100%;height:100%;display:block;
+    opacity:0.55;
+  }
+  /* desaturate / fade the shader out behind the centred text so it stays legible */
+  .hero-fade{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(ellipse 56% 50% at 50% 50%,
+        var(--bg) 0%,
+        rgba(11,11,12,0.86) 36%,
+        rgba(11,11,12,0.40) 66%,
+        rgba(11,11,12,0) 100%),
+      linear-gradient(to bottom,
+        rgba(11,11,12,0.55) 0%, transparent 22%,
+        transparent 78%, var(--bg) 100%);
+  }
+  .hero-content{
+    position:relative;z-index:2;
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .hero .eyebrow{margin-bottom:30px;}
+  .hero h1{
+    font-size:clamp(2.7rem,9.5vw,7.4rem);
+    line-height:1.0;letter-spacing:.02em;font-weight:500;
+    text-shadow:0 0 60px rgba(255,255,255,0.08);
+  }
+  .hero .lead{
+    margin-top:26px;max-width:30em;
+    color:var(--muted);font-size:clamp(1rem,1.7vw,1.2rem);
+  }
+  .scroll-cue{
+    position:absolute;bottom:34px;left:50%;transform:translateX(-50%);z-index:2;
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+    font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);
+  }
+  .scroll-cue .line{
+    width:1px;height:46px;background:linear-gradient(var(--muted),transparent);
+    animation:cue 2.4s ease-in-out infinite;
+  }
+  @keyframes cue{
+    0%,100%{opacity:.3;transform:scaleY(.7);transform-origin:top;}
+    50%{opacity:1;transform:scaleY(1);transform-origin:top;}
+  }
+
+  /* overview / contents */
+  .overview{
+    min-height:100vh;display:flex;align-items:center;
+    padding:120px 24px;
+  }
+  .overview-inner{max-width:var(--maxw);margin:0 auto;width:100%;}
+  .overview .eyebrow{margin-bottom:20px;}
+  .overview h2{
+    font-size:clamp(2rem,4.4vw,3.3rem);line-height:1.07;
+    margin-bottom:18px;max-width:16em;
+  }
+  .overview-lead{
+    color:var(--muted);max-width:34em;
+    font-size:clamp(1rem,1.4vw,1.14rem);
+    margin-bottom:clamp(42px,6vw,70px);
+  }
+  .overview-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    gap:clamp(22px,3vw,44px);
+  }
+  .ov-cat{
+    border-top:1px solid color-mix(in srgb, var(--cat) 55%, transparent);
+    padding-top:22px;
+  }
+  .ov-cat:nth-child(2).reveal{transition-delay:.1s;}
+  .ov-cat:nth-child(3).reveal{transition-delay:.2s;}
+  .ov-num{
+    font-size:12px;letter-spacing:.2em;color:var(--cat);font-weight:500;
+  }
+  .ov-cat h3{
+    font-size:clamp(1.35rem,2.1vw,1.85rem);margin:13px 0 5px;
+  }
+  .ov-desc{
+    display:block;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:22px;
+  }
+  .ov-list{list-style:none;display:flex;flex-direction:column;gap:10px;}
+  .ov-list a{
+    text-decoration:none;color:var(--text);font-size:1rem;
+    display:inline-flex;align-items:center;gap:10px;
+    transition:color .25s ease;
+  }
+  .ov-list a::before{
+    content:"";width:5px;height:5px;border-radius:50%;
+    background:var(--cat);flex:none;
+    transition:transform .25s ease;
+  }
+  .ov-list a:hover{color:var(--cat);}
+  .ov-list a:hover::before{transform:scale(1.7);}
+
+  /* mechanism sections */
+  .mech{
+    min-height:100vh;display:flex;align-items:center;
+    padding:110px 24px;
+  }
+  .mech-inner{
+    max-width:var(--maxw);margin:0 auto;width:100%;
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:clamp(34px,6vw,92px);align-items:center;
+  }
+  .mech.reverse .mech-media{order:2;}
+
+  /* photo figure plus caption */
+  .mech-fig{margin:0;display:flex;flex-direction:column;gap:14px;}
+  .frame{
+    position:relative;aspect-ratio:3/2;width:100%;
+    border-radius:3px;overflow:hidden;
+    box-shadow:0 40px 90px -34px color-mix(in srgb, var(--accent) 42%, transparent);
+  }
+  .frame img{
+    position:absolute;inset:0;z-index:2;
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  /* fallback shows only if the photo file is missing */
+  .ph-fallback{
+    position:absolute;inset:0;z-index:1;
+    border:1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+    border-radius:3px;
+    background:
+      radial-gradient(125% 90% at 50% 32%,
+        color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%),
+      var(--bg-soft);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:9px;text-align:center;padding:26px;
+  }
+  .ph-fallback .ph-species{
+    font-family:'Fraunces',serif;font-size:clamp(1.1rem,1.8vw,1.45rem);
+    color:color-mix(in srgb, var(--accent) 78%, #ffffff);
+  }
+  .ph-fallback .ph-note{
+    font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);
+  }
+  .caption{display:flex;flex-direction:column;gap:3px;padding-left:2px;}
+  .caption .common{
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text);
+  }
+  .caption .sci{
+    font-family:'Fraunces',serif;font-style:italic;font-size:13.5px;color:var(--muted);
+  }
+
+  .mech-text .eyebrow{margin-bottom:20px;}
+  .mech-text h2{
+    font-size:clamp(2.1rem,4.6vw,3.5rem);line-height:1.05;margin-bottom:22px;
+  }
+  .subtitle{
+    font-size:clamp(1.04rem,1.55vw,1.28rem);color:var(--text);
+    margin-bottom:24px;max-width:30em;
+  }
+  .this-animal{
+    font-size:1rem;color:var(--muted);max-width:32em;
+    padding-left:18px;
+    border-left:2px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  }
+  .this-animal .ta-label{color:var(--accent);font-weight:500;}
+
+  /* stagger the text a touch behind the image */
+  .mech-text.reveal{transition-delay:.12s;}
+
+  /* synthesis */
+  .synthesis{
+    min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    padding:130px 24px;
+  }
+  .synthesis .eyebrow{margin-bottom:26px;}
+  .synthesis h2{font-size:clamp(1.9rem,4vw,3rem);max-width:16em;line-height:1.12;}
+  .triad{
+    display:flex;flex-wrap:wrap;justify-content:center;
+    gap:clamp(14px,5vw,68px);margin:34px 0 36px;
+  }
+  .triad span{
+    font-family:'Fraunces',serif;font-size:clamp(2rem,6vw,4.4rem);font-weight:500;
+  }
+  .triad .a{color:#e0432e;}
+  .triad .r{color:#3b82e6;}
+  .triad .e{color:#5ad0b0;}
+  .synthesis p{max-width:38em;color:var(--muted);}
+
+  /* about */
+  .about{padding:130px 24px;}
+  .about-inner{max-width:760px;margin:0 auto;}
+  .about .eyebrow{margin-bottom:24px;}
+  .about h2{font-size:clamp(1.9rem,3.6vw,2.7rem);margin-bottom:28px;}
+  .about p{color:#c9c9cc;margin-bottom:18px;font-size:1.04rem;}
+  .about .draft-note{
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin-top:30px;
+  }
+
+  /* footer */
+  footer{
+    border-top:1px solid var(--line);
+    padding:54px 24px;
+    display:flex;flex-wrap:wrap;gap:18px 60px;justify-content:space-between;
+    max-width:var(--maxw);margin:0 auto;
+    font-size:12.5px;color:var(--muted);letter-spacing:.02em;
+  }
+  footer strong{color:var(--text);font-weight:500;}
+
+  /* image credits */
+  .credits{padding:120px 24px 30px;}
+  .credits-inner{max-width:760px;margin:0 auto;}
+  .credits .eyebrow{margin-bottom:22px;}
+  .credits-list{list-style:none;display:flex;flex-direction:column;}
+  .credits-list li{
+    display:flex;justify-content:space-between;align-items:baseline;gap:24px;
+    padding:13px 2px;border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .credits-list li:first-child{border-top:1px solid var(--line);}
+  .cr-animal{color:var(--text);letter-spacing:.02em;}
+  .cr-src a{
+    color:var(--muted);text-decoration:none;
+    border-bottom:1px solid transparent;
+    transition:color .25s ease, border-color .25s ease;
+  }
+  .cr-src a:hover{color:var(--text);border-color:var(--muted);}
+
+  /* responsive */
+  @media (max-width:860px){
+    .mech-inner{grid-template-columns:1fr;gap:40px;}
+    .mech.reverse .mech-media{order:0;}
+    .mech,.synthesis,.about,.credits,.overview{padding-left:20px;padding-right:20px;}
+    .overview-grid{grid-template-columns:1fr;gap:34px;}
+    .frame{aspect-ratio:3/2;}
+    .dots{right:14px;gap:13px;}
+    .dot-label{display:none;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    .reveal{transition:none;opacity:1;transform:none;}
+    .scroll-cue .line{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="progress" id="progress"></div>
+  <nav class="dots" id="dots" aria-label="Section navigation"></nav>
+
+  <main>
+
+    <!-- HERO -->
+    <section id="intro" class="hero" data-label="Intro" style="--accent:#ededed">
+      <canvas id="hero-shader" class="hero-shader" aria-hidden="true"></canvas>
+      <div class="hero-fade" aria-hidden="true"></div>
+      <div class="hero-content">
+        <div class="eyebrow reveal">IB 156 &middot; Animal Communication &middot; Final Art Project</div>
+        <h1 class="reveal">VISUAL&nbsp;PRODUCTION</h1>
+        <p class="lead reveal">The mechanisms behind animal color expression.</p>
+      </div>
+      <div class="scroll-cue">
+        <span>Scroll</span>
+        <span class="line"></span>
+      </div>
+    </section>
+
+    <!-- OVERVIEW -->
+    <section id="overview" class="overview" data-label="Overview" style="--accent:#ededed">
+      <div class="overview-inner">
+        <div class="eyebrow reveal">What's inside</div>
+        <h2 class="reveal">Three ways an animal makes color.</h2>
+        <p class="overview-lead reveal">Every section pairs one mechanism with one real animal. They group into three families, by how each one treats light.</p>
+        <div class="overview-grid">
+          <div class="ov-cat reveal" style="--cat:#e0432e">
+            <span class="ov-num">01</span>
+            <h3>Pigments</h3>
+            <span class="ov-desc">Color by absorption</span>
+            <ul class="ov-list">
+              <li><a href="#carotenoids">Carotenoids</a></li>
+              <li><a href="#porphyrins">Porphyrins</a></li>
+              <li><a href="#pterins">Pterins</a></li>
+              <li><a href="#melanin">Melanin</a></li>
+              <li><a href="#fluorescent">Fluorescent pigments</a></li>
+            </ul>
+          </div>
+          <div class="ov-cat reveal" style="--cat:#3b82e6">
+            <span class="ov-num">02</span>
+            <h3>Structural color</h3>
+            <span class="ov-desc">Color by reflection</span>
+            <ul class="ov-list">
+              <li><a href="#thinlayer">Thin layer interference</a></li>
+              <li><a href="#multilayer">Multilayer reflectors</a></li>
+              <li><a href="#arrays">Multidimensional arrays</a></li>
+            </ul>
+          </div>
+          <div class="ov-cat reveal" style="--cat:#5ad0b0">
+            <span class="ov-num">03</span>
+            <h3>Bioluminescence</h3>
+            <span class="ov-desc">Color by emission</span>
+            <ul class="ov-list">
+              <li><a href="#bioluminescence">Bioluminescence</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIGMENTS -->
+
+    <!-- Carotenoids -->
+    <section id="carotenoids" class="mech" data-label="Carotenoids" style="--accent:#e0432e">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Northern Cardinal</span>
+                <span class="ph-note">Add images/cardinal.jpg</span>
+              </div>
+              <img src="images/cardinal.jpg" alt="Northern Cardinal" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Northern Cardinal</span>
+              <span class="sci">Cardinalis cardinalis</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Pigments &middot; Color by absorption</div>
+          <h2>Carotenoids</h2>
+          <p class="subtitle">Pigments absorb some wavelengths and reflect the rest. Carotenoids absorb blue and green light, reflecting red and orange.</p>
+          <p class="this-animal"><span class="ta-label">The cardinal</span> cannot make carotenoids itself. It builds its red entirely from food, so a brighter male is a better fed one.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Porphyrins -->
+    <section id="porphyrins" class="mech reverse" data-label="Porphyrins" style="--accent:#4fb477">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Great Blue Turaco</span>
+                <span class="ph-note">Add images/turaco.jpg</span>
+              </div>
+              <img src="images/turaco.jpg" alt="Great Blue Turaco" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Great Blue Turaco</span>
+              <span class="sci">Corythaeola cristata</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Pigments &middot; Color by absorption</div>
+          <h2>Porphyrins</h2>
+          <p class="subtitle">Nitrogen rich pigments wrapped around a metal ion, producing true green and red from pigment alone.</p>
+          <p class="this-animal"><span class="ta-label">The turaco</span> is one of the only birds with real green and red pigment, and the same molecules help it process dietary copper.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pterins -->
+    <section id="pterins" class="mech" data-label="Pterins" style="--accent:#f2c53d">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Common Jezebel</span>
+                <span class="ph-note">Add images/jezebel.jpg</span>
+              </div>
+              <img src="images/jezebel.jpg" alt="Common Jezebel butterfly" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Common Jezebel</span>
+              <span class="sci">Delias eucharis</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Pigments &middot; Color by absorption</div>
+          <h2>Pterins</h2>
+          <p class="subtitle">Pigments built from vitamin B2 that produce white, yellow, and orange.</p>
+          <p class="this-animal"><span class="ta-label">The Jezebel butterfly</span> packs its pterin granules in a loosely ordered way, sharpening its yellows and reds toward structural color.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Melanin -->
+    <section id="melanin" class="mech reverse" data-label="Melanin" style="--accent:#c2a98a">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Paper Wasp</span>
+                <span class="ph-note">Add images/wasp.jpg</span>
+              </div>
+              <img src="images/wasp.jpg" alt="Paper wasp" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Paper Wasp</span>
+              <span class="sci">Polistes dominula</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Pigments &middot; Color by absorption</div>
+          <h2>Melanin</h2>
+          <p class="subtitle">The one pigment animals build themselves, responsible for nearly all black, grey, and brown.</p>
+          <p class="this-animal"><span class="ta-label">The paper wasp's</span> black facial markings are not limited by diet, but their pattern still signals its rank in the colony.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fluorescent pigments -->
+    <section id="fluorescent" class="mech" data-label="Fluorescent" style="--accent:#c3f04a">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Budgerigar</span>
+                <span class="ph-note">Add images/budgerigar.jpg</span>
+              </div>
+              <img src="images/budgerigar.jpg" alt="Budgerigar" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Budgerigar</span>
+              <span class="sci">Melopsittacus undulatus</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Pigments &middot; Color by absorption</div>
+          <h2>Fluorescent pigments</h2>
+          <p class="subtitle">Pigments that absorb one wavelength of light and send it back out as a longer one, a glow seen under UV.</p>
+          <p class="this-animal"><span class="ta-label">The budgie's</span> crown fluoresces under UV, and mates prefer that glow. Cover it up and the attraction fades.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STRUCTURAL COLOR -->
+
+    <!-- Thin layer interference -->
+    <section id="thinlayer" class="mech reverse" data-label="Thin layer" style="--accent:#9b8cf0">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">European Starling</span>
+                <span class="ph-note">Add images/starling.jpg</span>
+              </div>
+              <img src="images/starling.jpg" alt="European Starling" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">European Starling</span>
+              <span class="sci">Sturnus vulgaris</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Structural color &middot; Color by reflection</div>
+          <h2>Thin layer interference</h2>
+          <p class="subtitle">Color from light bouncing off a single transparent film, where the two reflections interfere.</p>
+          <p class="this-animal"><span class="ta-label">The starling's</span> plumage shimmers and shifts with viewing angle, never settling on one saturated color.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multilayer reflectors -->
+    <section id="multilayer" class="mech" data-label="Multilayer" style="--accent:#3b82e6">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Blue Morpho</span>
+                <span class="ph-note">Add images/morpho.jpg</span>
+              </div>
+              <img src="images/morpho.jpg" alt="Blue Morpho butterfly" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Blue Morpho</span>
+              <span class="sci">Morpho menelaus</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Structural color &middot; Color by reflection</div>
+          <h2>Multilayer reflectors</h2>
+          <p class="subtitle">Many stacked nanolayers tuned to one wavelength, producing bright, saturated structural color.</p>
+          <p class="this-animal"><span class="ta-label">The morpho's</span> blue is intense enough to carry across a forest, and building those layers so precisely takes a healthy individual.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multidimensional arrays -->
+    <section id="arrays" class="mech reverse" data-label="Arrays" style="--accent:#7e57d8">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Blue Jay</span>
+                <span class="ph-note">Add images/bluejay.jpg</span>
+              </div>
+              <img src="images/bluejay.jpg" alt="Blue Jay" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Blue Jay</span>
+              <span class="sci">Cyanocitta cristata</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Structural color &middot; Color by reflection</div>
+          <h2>Multidimensional arrays</h2>
+          <p class="subtitle">3D nanostructures that scatter a narrow band of light, making color that looks the same from every angle.</p>
+          <p class="this-animal"><span class="ta-label">The blue jay's</span> blue comes from structure, not pigment. Crush the feather and the color disappears.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- BIOLUMINESCENCE -->
+
+    <!-- Bioluminescence -->
+    <section id="bioluminescence" class="mech" data-label="Bioluminescence" style="--accent:#5ad0b0">
+      <div class="mech-inner">
+        <div class="mech-media reveal">
+          <figure class="mech-fig">
+            <div class="frame">
+              <div class="ph-fallback">
+                <span class="ph-species">Firefly</span>
+                <span class="ph-note">Add images/firefly.jpg</span>
+              </div>
+              <img src="images/firefly.jpg" alt="Firefly" loading="lazy" onerror="this.remove()" />
+            </div>
+            <figcaption class="caption">
+              <span class="common">Firefly</span>
+              <span class="sci">Photinus pyralis</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="mech-text reveal">
+          <div class="eyebrow">Bioluminescence &middot; Color by emission</div>
+          <h2>Bioluminescence</h2>
+          <p class="subtitle">Light made from scratch through a reaction between luciferin and luciferase, needing no sunlight.</p>
+          <p class="this-animal"><span class="ta-label">The firefly</span> generates its own glow and flashes it in a rhythm unique to its species to find a mate in the dark.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SYNTHESIS -->
+    <section id="synthesis" class="synthesis" data-label="Synthesis" style="--accent:#ededed">
+      <h2 class="reveal">Animals make color three fundamentally different ways.</h2>
+      <div class="triad reveal">
+        <span class="a">Absorb.</span>
+        <span class="r">Reflect.</span>
+        <span class="e">Emit.</span>
+      </div>
+      <p class="reveal">Pigments absorb light, nanostructures reflect it, and bioluminescence generates it. Many animals utilize a combination of these three visual production methods. For example, a budgie's green is structural blue layered over carotenoid yellow, and super black plumage uses microstructure to deepen melanin.</p>
+    </section>
+
+    <!-- ABOUT / ARTIST STATEMENT -->
+    <section id="about" class="about" data-label="About" style="--accent:#ededed">
+      <div class="about-inner">
+        <div class="eyebrow reveal">About this project</div>
+        <h2 class="reveal">Artist statement</h2>
+        <p class="reveal">This project draws from the visual production topic in lecture. I designed a website that highlights three different mechanisms by which animals create visual signals: pigments, structural coloration, and bioluminescence. All three are related to the physical expression of color. The section of the website dedicated to pigments includes descriptions of carotenoid, porphyrin, pterin, and melanin pigments. The structural coloration section includes thin-layer interference, multilayer reflectors, and multidimensional arrays. The last section focuses on bioluminescence.</p>
+        <p class="reveal">Each mechanism is paired with a real animal photograph that I sourced and selected to illustrate it, such as the Northern Cardinal for carotenoids, the Blue Morpho butterfly for multilayer reflectors, and the firefly for bioluminescence. The visual design of the site is intentionally dark and cinematic, so that the animals themselves become the focal point and their colors stand out against the background.</p>
+        <p class="reveal">In lecture, we learned that most animal pigments cannot be self-synthesized and must be acquired through diet or serve a primary role in health. We also learned that structural colors arise from nanoscale physical architecture as opposed to chemistry, and that bioluminescence generates light entirely through a biochemical reaction requiring no sunlight. The closing section of the website ties the three strategies together and notes that many animals combine multiple mechanisms at once to produce more complex color signals.</p>
+      </div>
+    </section>
+
+    <!-- IMAGE CREDITS -->
+    <section class="credits">
+      <div class="credits-inner">
+        <div class="eyebrow reveal">Image credits</div>
+        <ul class="credits-list reveal">
+          <li><span class="cr-animal">Northern Cardinal</span><span class="cr-src"><a href="https://www.kaytee.com/learn-care/wild-bird/all-about-northern-cardinals-and-how-to-attract-them" target="_blank" rel="noopener">Kaytee</a></span></li>
+          <li><span class="cr-animal">Great Blue Turaco</span><span class="cr-src"><a href="https://ebird.org/species/grbtur1" target="_blank" rel="noopener">eBird</a></span></li>
+          <li><span class="cr-animal">Common Jezebel</span><span class="cr-src"><a href="https://www.inaturalist.org/guide_taxa/2280685" target="_blank" rel="noopener">iNaturalist</a></span></li>
+          <li><span class="cr-animal">Paper Wasp</span><span class="cr-src"><a href="https://www.walthamservices.com/pest-control/paper-wasps/" target="_blank" rel="noopener">Waltham Pest Services</a></span></li>
+          <li><span class="cr-animal">Budgerigar</span><span class="cr-src"><a href="https://en.wikipedia.org/wiki/Budgerigar" target="_blank" rel="noopener">Wikipedia</a></span></li>
+          <li><span class="cr-animal">European Starling</span><span class="cr-src"><a href="https://www.ndow.org/species/european-starling/" target="_blank" rel="noopener">Nevada Department of Wildlife</a></span></li>
+          <li><span class="cr-animal">Blue Morpho</span><span class="cr-src"><a href="https://www.istockphoto.com/photos/morpho-butterfly" target="_blank" rel="noopener">iStock</a></span></li>
+          <li><span class="cr-animal">Blue Jay</span><span class="cr-src"><a href="https://www.audubon.org/field-guide/bird/blue-jay" target="_blank" rel="noopener">Audubon</a></span></li>
+          <li><span class="cr-animal">Firefly</span><span class="cr-src"><a href="https://xerces.org/blog/status-of-fireflies-in-the-united-states-and-canada" target="_blank" rel="noopener">Xerces Society</a></span></li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>
+      <span><strong>VISUAL PRODUCTION</strong> &middot; IB 156 Animal Communication &middot; Final Art Project &middot; Spring 2026</span>
+      <span>Kayla Lee</span>
+    </footer>
+
+  </main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+  /* hero WebGL shader background (adapted from the provided React component) */
+  (function(){
+    "use strict";
+    if (!window.THREE) return;
+    var canvas = document.getElementById('hero-shader');
+    var hero = document.getElementById('intro');
+    if (!canvas || !hero) return;
+
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var scene = new THREE.Scene();
+    var renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas: canvas });
+    } catch (e) { return; }
+    renderer.setPixelRatio(dpr);
+    renderer.setClearColor(new THREE.Color(0x000000));
+    var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, -1);
+
+    var uniforms = {
+      resolution: { value: [1, 1] },
+      time:       { value: 0.0 },
+      xScale:     { value: 1.0 },
+      yScale:     { value: 0.5 },
+      distortion: { value: 0.05 }
+    };
+
+    var vertexShader = [
+      'attribute vec3 position;',
+      'void main(){ gl_Position = vec4(position, 1.0); }'
+    ].join('\n');
+
+    var fragmentShader = [
+      'precision highp float;',
+      'uniform vec2 resolution;',
+      'uniform float time;',
+      'uniform float xScale;',
+      'uniform float yScale;',
+      'uniform float distortion;',
+      'void main(){',
+      '  vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);',
+      '  float d = length(p) * distortion;',
+      '  float rx = p.x * (1.0 + d);',
+      '  float gx = p.x;',
+      '  float bx = p.x * (1.0 - d);',
+      '  float r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale);',
+      '  float g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale);',
+      '  float b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale);',
+      '  gl_FragColor = vec4(r, g, b, 1.0);',
+      '}'
+    ].join('\n');
+
+    var verts = new Float32Array([
+      -1,-1,0,  1,-1,0,  -1,1,0,
+       1,-1,0, -1, 1,0,   1,1,0
+    ]);
+    var geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+    var material = new THREE.RawShaderMaterial({
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      uniforms: uniforms,
+      side: THREE.DoubleSide
+    });
+    scene.add(new THREE.Mesh(geometry, material));
+
+    function resize(){
+      var w = hero.clientWidth || window.innerWidth;
+      var h = hero.clientHeight || window.innerHeight;
+      renderer.setSize(w, h, false);
+      uniforms.resolution.value = [w * dpr, h * dpr];
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    var reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduceMotion){
+      renderer.render(scene, camera);
+      return;
+    }
+
+    var running = true, rafId = null;
+    function animate(){
+      if (!running) return;
+      uniforms.time.value += 0.01;
+      renderer.render(scene, camera);
+      rafId = requestAnimationFrame(animate);
+    }
+    animate();
+
+    /* pause the loop while the hero is scrolled out of view */
+    if ('IntersectionObserver' in window){
+      new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if (en.isIntersecting){
+            if (!running){ running = true; animate(); }
+          } else if (running){
+            running = false;
+            if (rafId) cancelAnimationFrame(rafId);
+          }
+        });
+      }, { threshold: 0 }).observe(hero);
+    }
+  })();
+</script>
+
+<script>
+  (function(){
+    "use strict";
+
+    /* build nav dots from every [data-label] section */
+    var sections = Array.prototype.slice.call(document.querySelectorAll('[data-label]'));
+    var dotsNav = document.getElementById('dots');
+    var progress = document.getElementById('progress');
+    var dotBySection = new Map();
+
+    sections.forEach(function(sec){
+      var accent = getComputedStyle(sec).getPropertyValue('--accent').trim() || '#ededed';
+      var a = document.createElement('a');
+      a.className = 'dot';
+      a.href = '#' + sec.id;
+      a.setAttribute('aria-label', sec.dataset.label);
+      a.style.setProperty('--dot-accent', accent);
+      a.innerHTML = '<span class="dot-label">' + sec.dataset.label + '</span><span class="dot-mark"></span>';
+      a.addEventListener('click', function(e){
+        e.preventDefault();
+        sec.scrollIntoView({ behavior:'smooth', block:'start' });
+      });
+      dotsNav.appendChild(a);
+      dotBySection.set(sec, { dot:a, accent:accent });
+    });
+
+    /* active section maps to active dot plus progress colour */
+    function setActive(sec){
+      dotBySection.forEach(function(v){ v.dot.classList.remove('active'); });
+      var entry = dotBySection.get(sec);
+      if(entry){
+        entry.dot.classList.add('active');
+        document.documentElement.style.setProperty('--active-accent', entry.accent);
+      }
+    }
+
+    var activeObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ setActive(en.target); }
+      });
+    }, { rootMargin: '-50% 0px -50% 0px', threshold: 0 });
+    sections.forEach(function(s){ activeObserver.observe(s); });
+
+    /* fade and rise reveal on enter */
+    var revealObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          en.target.classList.add('visible');
+          revealObserver.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.18 });
+    document.querySelectorAll('.reveal').forEach(function(el){ revealObserver.observe(el); });
+
+    /* scroll progress bar */
+    function updateProgress(){
+      var h = document.documentElement;
+      var scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+      progress.style.width = Math.max(0, Math.min(1, scrolled)) * 100 + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive:true });
+    window.addEventListener('resize', updateProgress);
+    updateProgress();
+
+    /* first paint: mark the hero active */
+    setActive(sections[0]);
+  })();
+</script>
+</body>
+</html>
